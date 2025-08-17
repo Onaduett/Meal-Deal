@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-
 struct SignUpView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var authManager: AuthenticationManager
@@ -15,7 +14,7 @@ struct SignUpView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
-    @State private var isLoading = false
+    @State private var showingAlert = false
     let isAdmin: Bool
     
     var body: some View {
@@ -46,6 +45,7 @@ struct SignUpView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .keyboardType(.emailAddress)
                                 .autocapitalization(.none)
+                                .textContentType(.emailAddress)
                         }
                         
                         // Password Field
@@ -60,6 +60,12 @@ struct SignUpView: View {
                                 .padding(.vertical, 12)
                                 .background(Color.gray.opacity(0.1))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .textContentType(.newPassword)
+                            
+                            // Password requirements
+                            Text("Password must be at least 6 characters")
+                                .font(.custom("Lexend-Regular", size: 12))
+                                .foregroundColor(.gray)
                         }
                         
                         // Confirm Password Field
@@ -74,16 +80,41 @@ struct SignUpView: View {
                                 .padding(.vertical, 12)
                                 .background(Color.gray.opacity(0.1))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .textContentType(.newPassword)
+                            
+                            // Password match indicator
+                            if !confirmPassword.isEmpty {
+                                HStack {
+                                    Image(systemName: password == confirmPassword ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                        .foregroundColor(password == confirmPassword ? .green : .red)
+                                    Text(password == confirmPassword ? "Passwords match" : "Passwords don't match")
+                                        .font(.custom("Lexend-Regular", size: 12))
+                                        .foregroundColor(password == confirmPassword ? .green : .red)
+                                }
+                            }
+                        }
+                        
+                        // Error Message
+                        if let errorMessage = authManager.errorMessage {
+                            Text(errorMessage)
+                                .font(.custom("Lexend-Regular", size: 14))
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
                         }
                         
                         // Sign Up Button
                         Button(action: {
-                            isLoading = true
+                            if password != confirmPassword {
+                                authManager.errorMessage = "Passwords do not match"
+                                return
+                            }
                             authManager.signUp(email: email, password: password, isAdmin: isAdmin)
                         }) {
-                            if isLoading {
+                            if authManager.isLoading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.9)
                             } else {
                                 Text("Sign Up")
                                     .font(.custom("Lexend-Medium", size: 16))
@@ -91,10 +122,17 @@ struct SignUpView: View {
                             }
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.black)
+                        .frame(height: 50)
+                        .background(isFormValid ? Color.black : Color.gray)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .disabled(email.isEmpty || password.isEmpty || confirmPassword.isEmpty || password != confirmPassword || isLoading)
+                        .disabled(!isFormValid || authManager.isLoading)
+                        
+                        // Terms and Conditions
+                        Text("By signing up, you agree to our Terms of Service and Privacy Policy")
+                            .font(.custom("Lexend-Regular", size: 12))
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                     }
                     .padding(.horizontal, 30)
                     
@@ -108,6 +146,31 @@ struct SignUpView: View {
                 .font(.custom("Lexend-Medium", size: 16))
                 .foregroundColor(.black)
             )
+            .alert("Success", isPresented: $showingAlert) {
+                Button("OK") {
+                    presentationMode.wrappedValue.dismiss()
+                }
+            } message: {
+                Text("Account created successfully! Please check your email to verify your account.")
+            }
         }
+        .onChange(of: authManager.isAuthenticated) { authenticated in
+            if authenticated {
+                presentationMode.wrappedValue.dismiss()
+            }
+        }
+        .onAppear {
+            authManager.errorMessage = nil
+        }
+    }
+    
+    private var isFormValid: Bool {
+        !email.isEmpty &&
+        !password.isEmpty &&
+        !confirmPassword.isEmpty &&
+        password == confirmPassword &&
+        password.count >= 6 &&
+        email.contains("@") &&
+        email.contains(".")
     }
 }

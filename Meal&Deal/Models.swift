@@ -7,8 +7,16 @@
 
 import SwiftUI
 
-
-struct User {
+struct User: Codable {
+    let id: UUID
     let email: String
     let isAdmin: Bool
+    let createdAt: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case email
+        case isAdmin = "is_admin"
+        case createdAt = "created_at"
+    }
 }
