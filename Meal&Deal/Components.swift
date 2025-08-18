@@ -93,11 +93,9 @@ class AuthenticationManager: ObservableObject {
                 let userProfile = try await fetchUserProfile(userId: session.user.id)
                 
                 await MainActor.run {
-                    // Check if the user type matches what they selected
                     if isAdmin != userProfile.isAdmin {
                         self.errorMessage = isAdmin ? "This account is not registered as a partner" : "This account is registered as a partner"
                         self.isLoading = false
-                        // Sign out the user since they selected wrong type
                         Task {
                             try? await self.supabase.auth.signOut()
                         }
@@ -192,8 +190,6 @@ class AuthenticationManager: ObservableObject {
     }
 
     func checkUserExists(email: String) async throws -> Bool {
-        print("🔍 Checking user existence for: \(email)")
-        
         do {
             // Check the users table
             let response: [User] = try await supabase.database
@@ -203,28 +199,19 @@ class AuthenticationManager: ObservableObject {
                 .execute()
                 .value
             
-            let userExists = !response.isEmpty
-            print("📊 Database result: Found \(response.count) users")
-            print(userExists ? "✅ USER EXISTS - SHOULD SHOW SIGN IN" : "❌ USER NOT FOUND - SHOULD SHOW SIGN UP")
-            
-            return userExists
+            return !response.isEmpty
             
         } catch {
-            print("🚨 Database query failed: \(error)")
-            
+            // Fallback: try password reset to check if user exists in auth
             do {
                 try await supabase.auth.resetPasswordForEmail(email, redirectTo: nil)
-                print("✅ Password reset succeeded - user exists in auth")
                 return true
             } catch {
                 let errorMsg = error.localizedDescription.lowercased()
-                print("🔍 Password reset error: \(errorMsg)")
                 
                 if errorMsg.contains("user not found") || errorMsg.contains("email address not found") {
-                    print("❌ User definitely doesn't exist")
                     return false
                 } else {
-                    print("✅ User likely exists (password reset didn't say 'user not found')")
                     return true
                 }
             }
@@ -246,14 +233,10 @@ class AuthenticationManager: ObservableObject {
             created_at: ISO8601DateFormatter().string(from: Date())
         )
         
-        print("Creating user profile: \(userProfile)")
-        
         try await supabase.database
             .from("users")
             .insert(userProfile)
             .execute()
-        
-        print("User profile created successfully")
     }
     
     // Social Login Methods

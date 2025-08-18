@@ -342,39 +342,28 @@ struct WelcomeView: View {
         isCheckingUser = true
         authManager.errorMessage = nil
         
-        print("🔍 WelcomeView: Starting user check for \(email)")
-        
         Task {
             do {
                 let userExists = try await authManager.checkUserExists(email: email)
                 
-                print("📝 WelcomeView: Final result - User exists: \(userExists)")
-                
                 await MainActor.run {
                     isCheckingUser = false
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        if userExists {
-                            authState = .signIn
-                            print("➡️ WelcomeView: SWITCHING TO SIGN IN MODE")
-                        } else {
-                            authState = .signUp
-                            print("➡️ WelcomeView: SWITCHING TO SIGN UP MODE")
-                        }
+                        authState = userExists ? .signIn : .signUp
                     }
                 }
             } catch {
-                print("🚨 WelcomeView: Error checking user: \(error)")
                 await MainActor.run {
                     isCheckingUser = false
                     withAnimation(.easeInOut(duration: 0.3)) {
                         authState = .signUp
-                        print("➡️ WelcomeView: ERROR - DEFAULTING TO SIGN UP MODE")
                     }
                     authManager.errorMessage = "Unable to verify account status"
                 }
             }
         }
     }
+    
     private func resetToEmailEntry() {
         authState = .enterEmail
         password = ""
