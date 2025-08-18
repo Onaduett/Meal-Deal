@@ -75,6 +75,18 @@ class AuthenticationManager: ObservableObject {
             }
         }
     }
+
+    func signInWithGoogle(isAdmin: Bool) {
+            // Implement Google Sign In
+            // This would integrate with Firebase Auth or Google Sign In SDK
+            print("Signing in with Google as \(isAdmin ? "admin" : "user")")
+        }
+        
+    func signInWithApple(isAdmin: Bool) {
+            // Implement Apple Sign In
+            // This would integrate with Sign in with Apple
+            print("Signing in with Apple as \(isAdmin ? "admin" : "user")")
+        }
     
     func signIn(email: String, password: String, isAdmin: Bool = false) {
         Task {

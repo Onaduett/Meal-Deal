@@ -142,7 +142,6 @@ struct SignInView: View {
     }
 }
 
-// MARK: - Forgot Password View
 struct ForgotPasswordView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var authManager: AuthenticationManager
