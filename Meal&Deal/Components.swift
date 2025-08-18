@@ -222,17 +222,6 @@ class AuthenticationManager: ObservableObject {
             }
             
             do {
-                // TODO: Implement Google Sign In with Supabase OAuth
-                // You'll need to configure Google OAuth in your Supabase dashboard
-                // and then use something like:
-                /*
-                try await supabase.auth.signInWithOAuth(
-                    provider: .google,
-                    redirectTo: URL(string: "your-app-scheme://oauth-callback")
-                )
-                */
-                
-                // For now, show a placeholder message
                 await MainActor.run {
                     self.isLoading = false
                     self.errorMessage = "Google Sign In will be implemented soon"
@@ -254,15 +243,6 @@ class AuthenticationManager: ObservableObject {
             }
             
             do {
-                // TODO: Implement Apple Sign In with Supabase OAuth
-                // You'll need to configure Apple OAuth in your Supabase dashboard
-                // and then use something like:
-                /*
-                try await supabase.auth.signInWithOAuth(
-                    provider: .apple,
-                    redirectTo: URL(string: "your-app-scheme://oauth-callback")
-                )
-                */
 
                 await MainActor.run {
                     self.isLoading = false
@@ -340,4 +320,5 @@ class AuthenticationManager: ObservableObject {
         return user
     }
 }
+
 
