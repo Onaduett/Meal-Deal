@@ -12,6 +12,7 @@ struct WelcomeView: View {
     
     @State private var email = ""
     @State private var password = ""
+    @State private var confirmPassword = ""
     @State private var userType: UserType = .user
     @State private var authState: AuthState = .enterEmail
     @State private var isCheckingUser = false
@@ -33,18 +34,33 @@ struct WelcomeView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            userType = userType == .user ? .admin : .user
-                        }) {
-                            Text(userType == .admin ? "User" : "Partner")
-                                .font(.custom("Lexend-Medium", size: 16))
+                    // User/Partner toggle - only show in enterEmail state
+                    if authState == .enterEmail {
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                userType = userType == .user ? .admin : .user
+                            }) {
+                                Text(userType == .admin ? "User" : "Partner")
+                                    .font(.custom("Lexend-Medium", size: 16))
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                        .transition(.opacity)
+                    } else {
+                        // Show selected user type as read-only when not in enterEmail state
+                        HStack {
+                            Spacer()
+                            Text(userType == .admin ? "Partner Account" : "User Account")
+                                .font(.custom("Lexend-Medium", size: 14))
                                 .foregroundColor(.gray)
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                        .transition(.opacity)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
                     
                     Spacer()
                     
@@ -55,7 +71,6 @@ struct WelcomeView: View {
                             .foregroundColor(.black)
                         
                         VStack(spacing: 20) {
-                            // Subtitle
                             Text(authState == .enterEmail ? "Log in or Sign up" : (authState == .signIn ? "Welcome back!" : "Create your account"))
                                 .font(.custom("Lexend-Medium", size: 18))
                                 .foregroundColor(.black)
@@ -87,6 +102,7 @@ struct WelcomeView: View {
                                         .disabled(authState != .enterEmail)
                                 }
                                 
+                                // Password Field (appears after email check)
                                 if authState == .signIn || authState == .signUp {
                                     VStack(alignment: .leading, spacing: 8) {
                                         Text(authState == .signIn ? "Password" : "Create a password")
@@ -117,6 +133,57 @@ struct WelcomeView: View {
                                         insertion: .move(edge: .top).combined(with: .opacity),
                                         removal: .opacity
                                     ))
+                                }
+                                
+                                if authState == .signUp {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Confirm password")
+                                            .font(.custom("Lexend-Medium", size: 14))
+                                            .foregroundColor(.black)
+                                        
+                                        SecureField("Confirm your password", text: $confirmPassword)
+                                            .font(.custom("Lexend-Regular", size: 16))
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 16)
+                                            .background(Color.gray.opacity(0.05))
+                                            .overlay(
+                                                Rectangle()
+                                                    .frame(height: 1)
+                                                    .foregroundColor(.gray.opacity(0.3))
+                                                    .padding(.horizontal, 16),
+                                                alignment: .bottom
+                                            )
+                                            .textContentType(.newPassword)
+                                        
+                                        if !confirmPassword.isEmpty {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: password == confirmPassword ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(password == confirmPassword ? .green : .red)
+                                                Text(password == confirmPassword ? "Passwords match" : "Passwords don't match")
+                                                    .font(.custom("Lexend-Regular", size: 12))
+                                                    .foregroundColor(password == confirmPassword ? .green : .red)
+                                            }
+                                        }
+                                    }
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .top).combined(with: .opacity),
+                                        removal: .opacity
+                                    ))
+                                }
+                                
+                                // Forgot Password (only show in signIn state)
+                                if authState == .signIn {
+                                    HStack {
+                                        Spacer()
+                                        Button("Forgot Password?") {
+                                            // Handle forgot password
+                                            authManager.resetPassword(email: email)
+                                        }
+                                        .font(.custom("Lexend-Regular", size: 14))
+                                        .foregroundColor(.gray)
+                                    }
+                                    .padding(.horizontal, 20)
                                 }
                                 
                                 if let errorMessage = authManager.errorMessage {
@@ -150,9 +217,7 @@ struct WelcomeView: View {
                             if authState != .enterEmail {
                                 Button(action: {
                                     withAnimation(.easeInOut(duration: 0.3)) {
-                                        authState = .enterEmail
-                                        password = ""
-                                        authManager.errorMessage = nil
+                                        resetToEmailEntry()
                                     }
                                 }) {
                                     Text("← Back to email")
@@ -164,7 +229,6 @@ struct WelcomeView: View {
                             // Social Login (only show in email state)
                             if authState == .enterEmail {
                                 VStack(spacing: 16) {
-                                    // Divider
                                     HStack {
                                         Rectangle()
                                             .frame(height: 1)
@@ -185,7 +249,6 @@ struct WelcomeView: View {
                                     HStack(spacing: 12) {
                                         // Google Sign In
                                         Button(action: {
-                                            // Handle Google sign in
                                             authManager.signInWithGoogle(isAdmin: userType == .admin)
                                         }) {
                                             HStack(spacing: 8) {
@@ -207,7 +270,6 @@ struct WelcomeView: View {
                                         
                                         // Apple Sign In
                                         Button(action: {
-                                            // Handle Apple sign in
                                             authManager.signInWithApple(isAdmin: userType == .admin)
                                         }) {
                                             HStack(spacing: 8) {
@@ -265,6 +327,11 @@ struct WelcomeView: View {
         case .signIn:
             authManager.signIn(email: email, password: password, isAdmin: userType == .admin)
         case .signUp:
+            // Check password confirmation before signing up
+            if password != confirmPassword {
+                authManager.errorMessage = "Passwords do not match"
+                return
+            }
             authManager.signUp(email: email, password: password, isAdmin: userType == .admin)
         }
     }
@@ -278,17 +345,30 @@ struct WelcomeView: View {
         isCheckingUser = true
         authManager.errorMessage = nil
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            isCheckingUser = false
-            
-            // For demo purposes, assume user exists if email contains "existing"
-            // In real app, this would be an API call to check user existence
-            let userExists = email.lowercased().contains("existing") || email.lowercased().contains("test")
-            
-            withAnimation(.easeInOut(duration: 0.3)) {
-                authState = userExists ? .signIn : .signUp
+        Task {
+            do {
+                let userExists = try await authManager.checkUserExists(email: email)
+                
+                await MainActor.run {
+                    isCheckingUser = false
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        authState = userExists ? .signIn : .signUp
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isCheckingUser = false
+                    authManager.errorMessage = error.localizedDescription
+                }
             }
         }
+    }
+    
+    private func resetToEmailEntry() {
+        authState = .enterEmail
+        password = ""
+        confirmPassword = ""
+        authManager.errorMessage = nil
     }
     
     private func getContinueButtonText() -> String {
@@ -309,7 +389,10 @@ struct WelcomeView: View {
         case .signIn:
             return isValidEmail(email) && !password.isEmpty
         case .signUp:
-            return isValidEmail(email) && password.count >= 6
+            return isValidEmail(email) &&
+                   password.count >= 6 &&
+                   !confirmPassword.isEmpty &&
+                   password == confirmPassword
         }
     }
     

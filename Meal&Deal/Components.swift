@@ -21,14 +21,14 @@ class SupabaseManager {
     }
 }
 
-
-
 enum AuthError: Error, LocalizedError {
     case invalidEmail
     case weakPassword
     case passwordMismatch
     case networkError(String)
     case unknownError
+    case userNotFound
+    case wrongUserType
     
     var errorDescription: String? {
         switch self {
@@ -42,6 +42,10 @@ enum AuthError: Error, LocalizedError {
             return "Network error: \(message)"
         case .unknownError:
             return "An unknown error occurred"
+        case .userNotFound:
+            return "No account found with this email address"
+        case .wrongUserType:
+            return "This account type doesn't match your selection"
         }
     }
 }
@@ -75,18 +79,6 @@ class AuthenticationManager: ObservableObject {
             }
         }
     }
-
-    func signInWithGoogle(isAdmin: Bool) {
-            // Implement Google Sign In
-            // This would integrate with Firebase Auth or Google Sign In SDK
-            print("Signing in with Google as \(isAdmin ? "admin" : "user")")
-        }
-        
-    func signInWithApple(isAdmin: Bool) {
-            // Implement Apple Sign In
-            // This would integrate with Sign in with Apple
-            print("Signing in with Apple as \(isAdmin ? "admin" : "user")")
-        }
     
     func signIn(email: String, password: String, isAdmin: Bool = false) {
         Task {
@@ -101,15 +93,21 @@ class AuthenticationManager: ObservableObject {
                 let userProfile = try await fetchUserProfile(userId: session.user.id)
                 
                 await MainActor.run {
+                    // Check if the user type matches what they selected
+                    if isAdmin != userProfile.isAdmin {
+                        self.errorMessage = isAdmin ? "This account is not registered as a partner" : "This account is registered as a partner"
+                        self.isLoading = false
+                        // Sign out the user since they selected wrong type
+                        Task {
+                            try? await self.supabase.auth.signOut()
+                        }
+                        return
+                    }
+                    
                     self.isAuthenticated = true
                     self.isAdmin = userProfile.isAdmin
                     self.currentUser = userProfile
                     self.isLoading = false
-                    
-                    if isAdmin != userProfile.isAdmin {
-                        self.errorMessage = isAdmin ? "This account is not registered as a partner" : "This account is registered as a partner"
-                        self.signOut()
-                    }
                 }
             } catch {
                 await MainActor.run {
@@ -187,6 +185,92 @@ class AuthenticationManager: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+    
+    // Check if user exists in Supabase Auth (not just the users table)
+    func checkUserExists(email: String) async throws -> Bool {
+        do {
+            let response: [User] = try await supabase.database
+                .from("users")
+                .select("id, email, is_admin")
+                .eq("email", value: email)
+                .execute()
+                .value
+            
+            if !response.isEmpty {
+                return true
+            }
+            
+            return false
+            
+        } catch {
+            print("Error checking user existence: \(error)")
+            return false
+        }
+    }
+    
+    // Social Login Methods
+    func signInWithGoogle(isAdmin: Bool) {
+        Task {
+            await MainActor.run {
+                self.isLoading = true
+                self.errorMessage = nil
+            }
+            
+            do {
+                // TODO: Implement Google Sign In with Supabase OAuth
+                // You'll need to configure Google OAuth in your Supabase dashboard
+                // and then use something like:
+                /*
+                try await supabase.auth.signInWithOAuth(
+                    provider: .google,
+                    redirectTo: URL(string: "your-app-scheme://oauth-callback")
+                )
+                */
+                
+                // For now, show a placeholder message
+                await MainActor.run {
+                    self.isLoading = false
+                    self.errorMessage = "Google Sign In will be implemented soon"
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+    
+    func signInWithApple(isAdmin: Bool) {
+        Task {
+            await MainActor.run {
+                self.isLoading = true
+                self.errorMessage = nil
+            }
+            
+            do {
+                // TODO: Implement Apple Sign In with Supabase OAuth
+                // You'll need to configure Apple OAuth in your Supabase dashboard
+                // and then use something like:
+                /*
+                try await supabase.auth.signInWithOAuth(
+                    provider: .apple,
+                    redirectTo: URL(string: "your-app-scheme://oauth-callback")
+                )
+                */
+
+                await MainActor.run {
+                    self.isLoading = false
+                    self.errorMessage = "Apple Sign In will be implemented soon"
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
                     self.errorMessage = error.localizedDescription
                 }
             }
