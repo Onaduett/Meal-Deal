@@ -190,27 +190,70 @@ class AuthenticationManager: ObservableObject {
             }
         }
     }
-    
-    // Check if user exists in Supabase Auth (not just the users table)
+
     func checkUserExists(email: String) async throws -> Bool {
+        print("🔍 Checking user existence for: \(email)")
+        
         do {
+            // Check the users table
             let response: [User] = try await supabase.database
                 .from("users")
-                .select("id, email, is_admin")
+                .select("id, email")
                 .eq("email", value: email)
                 .execute()
                 .value
             
-            if !response.isEmpty {
-                return true
-            }
+            let userExists = !response.isEmpty
+            print("📊 Database result: Found \(response.count) users")
+            print(userExists ? "✅ USER EXISTS - SHOULD SHOW SIGN IN" : "❌ USER NOT FOUND - SHOULD SHOW SIGN UP")
             
-            return false
+            return userExists
             
         } catch {
-            print("Error checking user existence: \(error)")
-            return false
+            print("🚨 Database query failed: \(error)")
+            
+            do {
+                try await supabase.auth.resetPasswordForEmail(email, redirectTo: nil)
+                print("✅ Password reset succeeded - user exists in auth")
+                return true
+            } catch {
+                let errorMsg = error.localizedDescription.lowercased()
+                print("🔍 Password reset error: \(errorMsg)")
+                
+                if errorMsg.contains("user not found") || errorMsg.contains("email address not found") {
+                    print("❌ User definitely doesn't exist")
+                    return false
+                } else {
+                    print("✅ User likely exists (password reset didn't say 'user not found')")
+                    return true
+                }
+            }
         }
+    }
+
+    private func createUserProfile(userId: UUID, email: String, isAdmin: Bool) async throws {
+        struct UserProfile: Codable {
+            let id: String
+            let email: String
+            let is_admin: Bool
+            let created_at: String
+        }
+        
+        let userProfile = UserProfile(
+            id: userId.uuidString,
+            email: email,
+            is_admin: isAdmin,
+            created_at: ISO8601DateFormatter().string(from: Date())
+        )
+        
+        print("Creating user profile: \(userProfile)")
+        
+        try await supabase.database
+            .from("users")
+            .insert(userProfile)
+            .execute()
+        
+        print("User profile created successfully")
     }
     
     // Social Login Methods
@@ -284,26 +327,6 @@ class AuthenticationManager: ObservableObject {
         }
     }
     
-    private func createUserProfile(userId: UUID, email: String, isAdmin: Bool) async throws {
-        struct UserProfile: Codable {
-            let id: String
-            let email: String
-            let is_admin: Bool
-            let created_at: String
-        }
-        
-        let userProfile = UserProfile(
-            id: userId.uuidString,
-            email: email,
-            is_admin: isAdmin,
-            created_at: ISO8601DateFormatter().string(from: Date())
-        )
-        
-        try await supabase.database
-            .from("users")
-            .insert(userProfile)
-            .execute()
-    }
     
     private func fetchUserProfile(userId: UUID) async throws -> User {
         let response: [User] = try await supabase.database

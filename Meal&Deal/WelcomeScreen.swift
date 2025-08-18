@@ -34,14 +34,13 @@ struct WelcomeView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // User/Partner toggle - only show in enterEmail state
                     if authState == .enterEmail {
                         HStack {
                             Spacer()
                             Button(action: {
                                 userType = userType == .user ? .admin : .user
                             }) {
-                                Text(userType == .admin ? "User" : "Partner")
+                                Text(userType == .admin ? "Member" : "Partner")
                                     .font(.custom("Lexend-Medium", size: 16))
                                     .foregroundColor(.gray)
                             }
@@ -50,10 +49,9 @@ struct WelcomeView: View {
                         .padding(.top, 10)
                         .transition(.opacity)
                     } else {
-                        // Show selected user type as read-only when not in enterEmail state
                         HStack {
                             Spacer()
-                            Text(userType == .admin ? "Partner Account" : "User Account")
+                            Text(userType == .admin ? "Partner Account" : "Member Account")
                                 .font(.custom("Lexend-Medium", size: 14))
                                 .foregroundColor(.gray)
                         }
@@ -327,7 +325,6 @@ struct WelcomeView: View {
         case .signIn:
             authManager.signIn(email: email, password: password, isAdmin: userType == .admin)
         case .signUp:
-            // Check password confirmation before signing up
             if password != confirmPassword {
                 authManager.errorMessage = "Passwords do not match"
                 return
@@ -335,7 +332,7 @@ struct WelcomeView: View {
             authManager.signUp(email: email, password: password, isAdmin: userType == .admin)
         }
     }
-    
+
     private func checkUserExists() {
         guard isValidEmail(email) else {
             authManager.errorMessage = "Please enter a valid email address"
@@ -345,25 +342,39 @@ struct WelcomeView: View {
         isCheckingUser = true
         authManager.errorMessage = nil
         
+        print("🔍 WelcomeView: Starting user check for \(email)")
+        
         Task {
             do {
                 let userExists = try await authManager.checkUserExists(email: email)
                 
+                print("📝 WelcomeView: Final result - User exists: \(userExists)")
+                
                 await MainActor.run {
                     isCheckingUser = false
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        authState = userExists ? .signIn : .signUp
+                        if userExists {
+                            authState = .signIn
+                            print("➡️ WelcomeView: SWITCHING TO SIGN IN MODE")
+                        } else {
+                            authState = .signUp
+                            print("➡️ WelcomeView: SWITCHING TO SIGN UP MODE")
+                        }
                     }
                 }
             } catch {
+                print("🚨 WelcomeView: Error checking user: \(error)")
                 await MainActor.run {
                     isCheckingUser = false
-                    authManager.errorMessage = error.localizedDescription
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        authState = .signUp
+                        print("➡️ WelcomeView: ERROR - DEFAULTING TO SIGN UP MODE")
+                    }
+                    authManager.errorMessage = "Unable to verify account status"
                 }
             }
         }
     }
-    
     private func resetToEmailEntry() {
         authState = .enterEmail
         password = ""
