@@ -9,7 +9,7 @@ import SwiftUI
 
 
 
-struct ContentView: View {
+struct PanelsView: View {
     @StateObject private var authManager = AuthenticationManager()
     
     var body: some View {
@@ -29,5 +29,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    PanelsView()
 }

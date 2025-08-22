@@ -61,8 +61,9 @@ struct WelcomeView: View {
                     }
                     
                     Spacer()
+                    Spacer() // add an image here or video
                     
-                    VStack(spacing: 40) {
+                    VStack(spacing: 20) {
                         // Logo
                         Text("Meal&Deal")
                             .font(.custom("Lexend-SemiBold", size: 48))
@@ -80,13 +81,13 @@ struct WelcomeView: View {
                                         Text("Email")
                                             .font(.custom("Lexend-Medium", size: 14))
                                             .foregroundColor(.black)
+                                            .padding(.horizontal, 16)
                                     }
                                     
                                     TextField(authState == .enterEmail ? "Email" : "Enter your email", text: $email)
                                         .font(.custom("Lexend-Regular", size: 16))
                                         .padding(.horizontal, 16)
                                         .padding(.vertical, 16)
-                                        .background(Color.gray.opacity(0.05))
                                         .overlay(
                                             Rectangle()
                                                 .frame(height: 1)
@@ -106,12 +107,12 @@ struct WelcomeView: View {
                                         Text(authState == .signIn ? "Password" : "Create a password")
                                             .font(.custom("Lexend-Medium", size: 14))
                                             .foregroundColor(.black)
+                                            .padding(.horizontal, 16)
                                         
                                         SecureField("Enter your password", text: $password)
                                             .font(.custom("Lexend-Regular", size: 16))
                                             .padding(.horizontal, 16)
                                             .padding(.vertical, 16)
-                                            .background(Color.gray.opacity(0.05))
                                             .overlay(
                                                 Rectangle()
                                                     .frame(height: 1)
@@ -125,6 +126,7 @@ struct WelcomeView: View {
                                             Text("Password must be at least 6 characters")
                                                 .font(.custom("Lexend-Regular", size: 12))
                                                 .foregroundColor(.gray)
+                                                .padding(.horizontal, 16)
                                         }
                                     }
                                     .transition(.asymmetric(
@@ -138,17 +140,16 @@ struct WelcomeView: View {
                                         Text("Confirm password")
                                             .font(.custom("Lexend-Medium", size: 14))
                                             .foregroundColor(.black)
+                                            .padding(.horizontal, 16)
                                         
                                         SecureField("Confirm your password", text: $confirmPassword)
                                             .font(.custom("Lexend-Regular", size: 16))
                                             .padding(.horizontal, 16)
                                             .padding(.vertical, 16)
-                                            .background(Color.gray.opacity(0.05))
                                             .overlay(
                                                 Rectangle()
                                                     .frame(height: 1)
-                                                    .foregroundColor(.gray.opacity(0.3))
-                                                    .padding(.horizontal, 16),
+                                                    .foregroundColor(.gray.opacity(0.3)),
                                                 alignment: .bottom
                                             )
                                             .textContentType(.newPassword)
@@ -162,6 +163,7 @@ struct WelcomeView: View {
                                                     .font(.custom("Lexend-Regular", size: 12))
                                                     .foregroundColor(password == confirmPassword ? .green : .red)
                                             }
+                                            .padding(.horizontal, 16)
                                         }
                                     }
                                     .transition(.asymmetric(
@@ -170,12 +172,10 @@ struct WelcomeView: View {
                                     ))
                                 }
                                 
-                                // Forgot Password (only show in signIn state)
                                 if authState == .signIn {
                                     HStack {
                                         Spacer()
                                         Button("Forgot Password?") {
-                                            // Handle forgot password
                                             authManager.resetPassword(email: email)
                                         }
                                         .font(.custom("Lexend-Regular", size: 14))
@@ -250,8 +250,9 @@ struct WelcomeView: View {
                                             authManager.signInWithGoogle(isAdmin: userType == .admin)
                                         }) {
                                             HStack(spacing: 8) {
-                                                Image(systemName: "globe")
-                                                    .foregroundColor(.black)
+                                                Image("google_logo")
+                                                    .resizable()
+                                                    .frame(width: 16, height: 16)
                                                 Text("Sign in with Google")
                                                     .font(.custom("Lexend-Medium", size: 14))
                                                     .foregroundColor(.black)
@@ -296,6 +297,7 @@ struct WelcomeView: View {
                             }
                         }
                     }
+                    .padding(.bottom, 40)
                     
                     Spacer()
                     
@@ -332,7 +334,7 @@ struct WelcomeView: View {
             authManager.signUp(email: email, password: password, isAdmin: userType == .admin)
         }
     }
-
+    
     private func checkUserExists() {
         guard isValidEmail(email) else {
             authManager.errorMessage = "Please enter a valid email address"
@@ -390,9 +392,9 @@ struct WelcomeView: View {
             return isValidEmail(email) && !password.isEmpty
         case .signUp:
             return isValidEmail(email) &&
-                   password.count >= 6 &&
-                   !confirmPassword.isEmpty &&
-                   password == confirmPassword
+            password.count >= 6 &&
+            !confirmPassword.isEmpty &&
+            password == confirmPassword
         }
     }
     

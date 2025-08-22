@@ -93,9 +93,11 @@ class AuthenticationManager: ObservableObject {
                 let userProfile = try await fetchUserProfile(userId: session.user.id)
                 
                 await MainActor.run {
+                    // Check if the user type matches what they selected
                     if isAdmin != userProfile.isAdmin {
                         self.errorMessage = isAdmin ? "This account is not registered as a partner" : "This account is registered as a partner"
                         self.isLoading = false
+                        // Sign out the user since they selected wrong type
                         Task {
                             try? await self.supabase.auth.signOut()
                         }
