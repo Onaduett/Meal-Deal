@@ -36,6 +36,7 @@ struct DiscoverView: View {
 struct DiscoverHeader: View {
     var body: some View {
         HStack {
+            Spacer()
             Text("Meal&Deal")
                 .font(.custom("Lexend-SemiBold", size: 20))
                 .foregroundColor(.black)
@@ -105,11 +106,9 @@ struct RestaurantSection: View {
                     .font(.custom("Lexend-SemiBold", size: 18))
                     .foregroundColor(.black)
                 Spacer()
-                Button("See all") {
-                    // Action for see all
-                }
-                .font(.custom("Lexend-Regular", size: 14))
-                .foregroundColor(.gray)
+                NavigationLink("See all", destination: AllRestaurantsView())
+                    .font(.custom("Lexend-Regular", size: 14))
+                    .foregroundColor(.gray)
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
@@ -139,11 +138,9 @@ struct PickUpTodaySection: View {
                     .font(.custom("Lexend-SemiBold", size: 18))
                     .foregroundColor(.black)
                 Spacer()
-                Button("See all") {
-                    // Action for see all
-                }
-                .font(.custom("Lexend-Regular", size: 14))
-                .foregroundColor(.gray)
+                NavigationLink("See all", destination: AllPickupDealsView())
+                    .font(.custom("Lexend-Regular", size: 14))
+                    .foregroundColor(.gray)
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
@@ -187,6 +184,63 @@ struct RestaurantCard: View {
             .padding(.horizontal, 4)
         }
         .frame(width: 240)
+    }
+}
+
+// New views for "See all" functionality
+struct AllRestaurantsView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    let restaurants = [
+        UserRestaurant(name: "Nedelka", price: "2,300₸", originalPrice: "3,500₸"),
+        UserRestaurant(name: "Magnum", price: "2,300₸", originalPrice: "3,500₸"),
+        UserRestaurant(name: "Dastarkhan", price: "1,800₸", originalPrice: "2,500₸"),
+        UserRestaurant(name: "Burger King", price: "3,200₸", originalPrice: "4,000₸"),
+        UserRestaurant(name: "Pizza Hut", price: "2,800₸", originalPrice: "3,800₸"),
+        UserRestaurant(name: "Domino's", price: "2,500₸", originalPrice: "3,200₸")
+    ]
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(restaurants, id: \.name) { restaurant in
+                    RestaurantCard(restaurant: restaurant)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+        }
+        .navigationTitle("All Restaurants")
+        .navigationBarTitleDisplayMode(.large)
+        .navigationBarBackButtonHidden(false)
+    }
+}
+
+struct AllPickupDealsView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    let pickupDeals = [
+        UserRestaurant(name: "Coffee Boom", price: "2,300₸", originalPrice: "3,500₸"),
+        UserRestaurant(name: "Navat", price: "2,300₸", originalPrice: "3,500₸"),
+        UserRestaurant(name: "Starbucks", price: "1,900₸", originalPrice: "2,800₸"),
+        UserRestaurant(name: "KFC", price: "2,800₸", originalPrice: "3,500₸"),
+        UserRestaurant(name: "Costa Coffee", price: "1,800₸", originalPrice: "2,500₸"),
+        UserRestaurant(name: "McDonald's", price: "2,200₸", originalPrice: "3,000₸")
+    ]
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(pickupDeals, id: \.name) { deal in
+                    RestaurantCard(restaurant: deal)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+        }
+        .navigationTitle("PickUp Today")
+        .navigationBarTitleDisplayMode(.large)
+        .navigationBarBackButtonHidden(false)
     }
 }
 
